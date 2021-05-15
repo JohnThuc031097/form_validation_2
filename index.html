@@ -20,30 +20,31 @@
 
       <div class="form-group">
         <label for="fullname" class="form-label">Tên đầy đủ</label>
-        <input id="fullname" name="fullname" rules="required" type="text" placeholder="VD: Sơn Đặng"
+        <input id="fullname" name="fullname" validate-rules="required" type="text" placeholder="VD: Sơn Đặng"
           class="form-control">
-        <span class="form-message"></span>
+        <span class="form-message" name="fullname" validate-errors="Vui lòng nhập tên đầy đủ"></span>
       </div>
 
       <div class="form-group">
         <label for="email" class="form-label">Email</label>
-        <input id="email" name="email" rules="required|email" type="text" placeholder="VD: email@domain.com"
+        <input id="email" name="email" validate-rules="required|email" type="text" placeholder="VD: email@domain.com"
           class="form-control">
-        <span class="form-message"></span>
+        <span class="form-message" name="email" validate-errors="Vui lòng nhập email|Email không hợp lệ"></span>
       </div>
 
       <div class="form-group">
         <label for="password" class="form-label">Mật khẩu</label>
-        <input id="password" name="password" rules="required|min:5" type="password" placeholder="Nhập mật khẩu"
+        <input id="password" name="password" validate-rules="required|min:5" type="password" placeholder="Nhập mật khẩu"
           class="form-control">
-        <span class="form-message"></span>
+        <span class="form-message" name="password"
+          validate-errors="Vui lòng nhập mật khẩu|Độ dài mật khẩu tối thiểu 5 kí tự"></span>
       </div>
 
       <div class="form-group">
         <label for="password_confirmation" class="form-label">Nhập lại mật khẩu</label>
-        <input id="password_confirmation" name="password_confirmation" rules="required" placeholder="Nhập lại mật khẩu"
-          type="password" class="form-control">
-        <span class="form-message"></span>
+        <input id="password_confirmation" name="password_confirmation" validate-rules="required"
+          placeholder="Nhập lại mật khẩu" type="password" class="form-control">
+        <span class="form-message" name="password_confirmation" validate-errors="Mật khẩu nhập lại không khớp"></span>
       </div>
 
       <button class="form-submit">Đăng ký</button>
