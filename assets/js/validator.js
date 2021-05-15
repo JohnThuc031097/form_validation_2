@@ -2,31 +2,37 @@ const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
 
 const ValidatorRules = {
-  required(value, msg = 'Vui lòng nhập trường này') {
-    return value && undefined || msg;
+  required(msg = 'Vui lòng nhập trường này') {
+    return value => value && undefined || msg;
   },
-  email(value, msg = 'Email không hợp lệ') {
-    const regex = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-    return regex.test(String(value).toLowerCase()) && undefined || msg;
+  email(msg = 'Email không hợp lệ') {
+    return value => {
+      const regex = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+      return regex.test(String(value).toLowerCase()) && undefined || msg;
+    }
   },
-  min(min) {
-    return (value, msg = `Độ dài chuỗi tối thiểu từ ${min} kí tự`) => (value.length >= min && undefined || msg);
+  min(msg = 'Độ dài chuỗi tối thiểu không đủ') {
+    return min => value => (value.length >= min && undefined || msg);
   },
-  max(max) {
-    return (value, msg = `Độ dài chuỗi tối đa là ${max} kí tự`) => (value.length <= max && undefined || msg);
+  max(msg = 'Độ dài chuỗi tối đa bị vượt quá') {
+    return max => value => (value.length <= max && undefined || msg);
   },
 }
 
 const ValidatorEvents = {
   Rules: ValidatorRules,
   FuncRules: {},
-  ErrorRules: {},
 
-  onblur(elements) {
-    if (this.FuncRules && this.ErrorRules) {
+  onblur(elements, callback) {
+    if (this.FuncRules) {
       elements?.forEach(element => {
-        element.onblur = (e) => {
-          console.log(e);
+        element.onblur = () => {
+          console.log(element);
+          for (const name in this.FuncRules) {
+            this.FuncRules[name].forEach(func => {
+              callback(name, func(element.value.trim()));
+            });
+          }
         }
       })
     }
@@ -39,27 +45,45 @@ const ValidatorEvents = {
 const ValidatorFuncs = {
   Rules: ValidatorRules,
 
-  getErrorInRules(elements, callback) {
+  setMessage(eBox, eMessage, msg) {
+    console.log(eBox);
+    if (msg) {
+      eBox.classList.add('invalid');
+      eMessage.innerHTML = msg;
+    } else {
+      eBox.classList.remove('invalid');
+      eMessage.innerHTML = '';
+    }
+  },
+
+  getElementInElements(elements, callback) {
+    elements.forEach(e => {
+      let name = e.getAttribute('name');
+      callback(name, e);
+    });
+  },
+
+  getMessageInRules(elements, callback) {
     elements.forEach(e => {
       let name = e.getAttribute('name');
       let rules = [];
-      e.getAttribute('validate-errors').split('|').forEach(msgError => {
-        rules.push(msgError);
+      e.getAttribute('validate-messages').split('|').forEach(msg => {
+        rules.push(msg);
       });
       callback(name, rules);
     });
   },
 
-  getFuncInRules(elements, callback) {
+  getFuncInRules(elements, msgRules, callback) {
     elements.forEach(e => {
       let name = e.getAttribute('name');
       let rules = [];
-      e.getAttribute('validate-rules').split('|').forEach(rule => {
+      e.getAttribute('validate-rules').split('|').forEach((rule, index) => {
         if (rule.includes(':')) {
           let ruleInfo = rule.split(':');
-          rules.push(this.Rules[ruleInfo[0]](ruleInfo[1]));
+          rules.push(this.Rules[ruleInfo[0]](msgRules[name][index])(ruleInfo[1]));
         } else {
-          rules.push(this.Rules[rule]);
+          rules.push(this.Rules[rule](msgRules[name][index]));
         }
       });
       callback(name, rules);
@@ -72,24 +96,40 @@ const Validator = (formSelector) => {
   const Events = ValidatorEvents;
 
   let funcRules = {};
-  let msgErrors = {};
+  let msgRules = {};
+  let eBoxRules = {};
+  let eMessageRules = {};
   let eForm = $(formSelector);
+
   if (eForm) {
 
+    let eBoxs = eForm.querySelectorAll('[name][validate-box]');
+    let eMessages = eForm.querySelectorAll('[name][validate-messages]');
     let eInputs = eForm.querySelectorAll('[name][validate-rules]');
-    let eErrors = eForm.querySelectorAll('[name][validate-errors]');
 
-    Funcs.getFuncInRules(eInputs, (name, rules) => {
+    Funcs.getElementInElements(eBoxs, (name, element) => {
+      eBoxRules[name] = element;
+    });
+    console.log(eBoxRules);
+
+    Funcs.getElementInElements(eMessages, (name, element) => {
+      eMessageRules[name] = element;
+    });
+    //console.log(eMessageRules);
+
+    Funcs.getMessageInRules(eMessages, (name, rules) => {
+      msgRules[name] = rules;
+    });
+    //console.log(msgErrors);
+
+    Funcs.getFuncInRules(eInputs, msgRules, (name, rules) => {
       funcRules[name] = rules;
     });
-    // console.log(funcRules);
+    //console.log(funcRules);
 
-    Funcs.getErrorInRules(eErrors, (name, rules) => {
-      msgErrors[name] = rules;
-    });
-    // console.log(msgErrors);
     Events.FuncRules = funcRules;
-    Events.ErrorRules = msgErrors;
-    Events.onblur(eInputs);
+    Events.onblur(eInputs, (name, msg) => {
+      Funcs.setMessage(eBoxRules[name], eMessageRules[name], msg);
+    });
   };
 }
