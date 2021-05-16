@@ -85,7 +85,7 @@ const ValidatorFuncs = {
     elements?.forEach(e => {
       let name = e.getAttribute('name');
       let funcRules = [];
-      e.getAttribute('validate-rules').split('|').forEach((rule, index) => {
+      e?.getAttribute('validate-rules').split('|').forEach((rule, index) => {
         if (rule.includes(':')) {
           let ruleInfo = rule.split(':');
           funcRules.push(this.Rules[ruleInfo[0]](msgRules[name][index])(ruleInfo[1]));
@@ -104,26 +104,47 @@ const ValidatorEvents = {
   NameRules: {},
   FuncRules: {},
 
-  onsubmit(eForm, elements, callbackMsg, calbackResults) {
+  onsubmit(elements, callbackMsg, calbackResults) {
     if (this.FuncRules) {
-      eForm.onsubmit = (e) => {
-        let acceptSubmit = true;
-        let dataSubmit = {};
-        this.Funcs.getElementInElements(elements, (name, element) => {
-          let msg = undefined;
-          let value = element.value.trim();
-          let isRequired = this.Funcs.getNameFunc(name, 'required');
-          if (isRequired) {
-            this.FuncRules[name].some(func => {
-              return (msg = func(value));
-            });
-            msg && (acceptSubmit = false);
+      let acceptSubmit = true;
+      let dataSubmit = {};
+      this.Funcs.getElementInElements(elements, (name, element) => {
+        let isRequired = this.Funcs.getNameFunc(name, 'required');
+        let msg = undefined;
+        let value = element.value;
+        let type = element.getAttribute('type');
+        if (isRequired) {
+          switch (type) {
+            case 'radio':
+              let eRadios = element.querySelectorAll('[name][type]');
+              [...eRadios].forEach(e => {
+                if (e.checked) return (value = e.value);
+              });
+              this.FuncRules[name].some(func => {
+                return (msg = func(!value && ''));
+              });
+              break;
+            case 'checkbox':
+              let eCheckboxs = element.querySelectorAll('[name][type]');
+              value = [...eCheckboxs].reduce((totalvalue, e) => {
+                return e.checked ? [...totalvalue, e.value] : totalvalue;
+              }, []);
+              this.FuncRules[name].some(func => {
+                return (msg = func(value.length > 0 && value || ''));
+              });
+              break;
+            default:
+              this.FuncRules[name].some(func => {
+                return (msg = func(value.trim()));
+              });
+              break;
           }
-          acceptSubmit && (dataSubmit[name] = value);
-          callbackMsg(name, msg);
-        });
-        calbackResults(acceptSubmit && dataSubmit);
-      }
+          msg && (acceptSubmit = false);
+        }
+        acceptSubmit && (dataSubmit[name] = value);
+        callbackMsg(name, msg);
+      });
+      calbackResults(acceptSubmit && dataSubmit);
     }
   },
   onblur(elements, callback) {
@@ -145,13 +166,35 @@ const ValidatorEvents = {
   oninput(elements, callback) {
     if (this.FuncRules) {
       this.Funcs.getElementInElements(elements, (name, element) => {
-        let isRequired = this.NameRules[name].some(name => name === 'required');
         element.oninput = () => {
+          let isRequired = this.Funcs.getNameFunc(name, 'required');
           let msg = undefined;
-          this.FuncRules[name].some(func => {
-            return (msg = func(element.value.trim()));
-          });
-          if (!isRequired && element.value.trim() === '') {
+          let value = element.value;
+          let type = element.getAttribute('type');
+          switch (type) {
+            case 'radio':
+              let eRadios = element.querySelectorAll('[name][type]');
+              value = [...eRadios].some(e => e.checked);
+              this.FuncRules[name].some(func => {
+                return (msg = func(value));
+              });
+              break;
+            case 'checkbox':
+              let eCheckboxs = element.querySelectorAll('[name][type]');
+              value = [...eCheckboxs].reduce((totalvalue, e) => {
+                return e.checked ? [...totalvalue, e.value] : totalvalue;
+              }, []);
+              this.FuncRules[name].some(func => {
+                return (msg = func(value));
+              });
+              break;
+            default:
+              this.FuncRules[name].some(func => {
+                return (msg = func(value.trim()));
+              });
+              break;
+          }
+          if (!isRequired && value.trim() === '') {
             msg = '';
           }
           callback(name, msg);
@@ -176,13 +219,12 @@ const Validator = {
   eBoxs: undefined,
   eMessages: undefined,
   eInputs: undefined,
-
-  dataSubmit: {},
+  eRadios: undefined,
 
   init(formSelector) {
     this.eForm = $(formSelector);
     if (this.eForm) {
-      this.eBoxs = this.eForm.querySelectorAll('[name][validate-box]');
+      this.eBoxs = this.eForm.querySelectorAll('[name][validate-boxs]');
       this.eMessages = this.eForm.querySelectorAll('[name][validate-messages]');
       this.eInputs = this.eForm.querySelectorAll('[name][validate-rules]');
 
@@ -197,22 +239,22 @@ const Validator = {
     this.Funcs.getElementInElements(this.eBoxs, (name, element) => {
       this.eBoxRules[name] = element;
     });
-    //console.log(eBoxRules);
+    //console.log(this.eBoxRules);
 
     this.Funcs.getElementInElements(this.eMessages, (name, element) => {
       this.eMessageRules[name] = element;
     });
-    //console.log(eMessageRules);
+    //console.log(this.eMessageRules);
 
     this.Funcs.getMessageInRules(this.eMessages, (name, rules) => {
       this.msgRules[name] = rules;
     });
-    //console.log(msgErrors);
+    //console.log(this.msgRules);
 
     this.Funcs.getFuncInRules(this.eInputs, this.msgRules, (name, rules) => {
       this.funcRules[name] = rules;
     });
-    //console.log(funcRules);
+    //console.log(this.funcRules);
 
     this.Funcs.getNameInRules(this.eInputs, (name, rules) => {
       this.nameRules[name] = rules;
@@ -231,16 +273,15 @@ const Validator = {
     this.Events.oninput(this.eInputs, (name, msg) => {
       this.Funcs.setMessage(this.eBoxRules[name], this.eMessageRules[name], msg);
     });
-
-    this.Events.onsubmit(this.eForm, this.eInputs, (name, msg) => {
-      this.Funcs.setMessage(this.eBoxRules[name], this.eMessageRules[name], msg);
-    }, results => {
-      console.log('data:', results);
-      this.dataSubmit = results;
-    });
   },
 
-  getDataSubmit() {
-    return this.dataSubmit;
+  getDataSubmit(callback) {
+    this.Events.onsubmit(this.eInputs, (name, msg) => {
+      this.Funcs.setMessage(this.eBoxRules[name], this.eMessageRules[name], msg);
+    }, results => {
+      // console.log('data:', results);
+      // this.dataSubmit = results;
+      callback(results);
+    });
   }
 }
