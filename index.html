@@ -27,24 +27,25 @@
 
       <div class="form-group" name="email" validate-box>
         <label for="email" class="form-label">Email</label>
-        <input id="email" name="email" validate-rules="required|email" type="text" placeholder="VD: email@domain.com"
+        <input id="email" name="email" validate-rules="email" type="text" placeholder="VD: email@domain.com"
           class="form-control">
-        <span class="form-message" name="email" validate-messages="Vui lòng nhập email|Email không hợp lệ"></span>
+        <span class="form-message" name="email" validate-messages="Email không hợp lệ"></span>
       </div>
 
       <div class="form-group" name="password" validate-box>
         <label for="password" class="form-label">Mật khẩu</label>
-        <input id="password" name="password" validate-rules="required|min:5" type="password" placeholder="Nhập mật khẩu"
-          class="form-control">
+        <input id="password" name="password" validate-rules="required|min:5|max:20" type="password"
+          placeholder="Nhập mật khẩu" class="form-control">
         <span class="form-message" name="password"
-          validate-messages="Vui lòng nhập mật khẩu|Độ dài mật khẩu tối thiểu 5 kí tự"></span>
+          validate-messages="Vui lòng nhập mật khẩu|Độ dài mật khẩu tối thiểu 5 kí tự|Độ dài mật khẩu vượt quá 20 kí tự"></span>
       </div>
 
       <div class="form-group" name="password_confirmation" validate-box>
         <label for="password_confirmation" class="form-label">Nhập lại mật khẩu</label>
-        <input id="password_confirmation" name="password_confirmation" validate-rules="required"
+        <input id="password_confirmation" name="password_confirmation" validate-rules="required|confirmed:password"
           placeholder="Nhập lại mật khẩu" type="password" class="form-control">
-        <span class="form-message" name="password_confirmation" validate-messages="Mật khẩu nhập lại không khớp"></span>
+        <span class="form-message" name="password_confirmation"
+          validate-messages="Vui lòng nhập lại mật khẩu|Mật khẩu nhập lại không khớp"></span>
       </div>
 
       <button class="form-submit">Đăng ký</button>
@@ -53,7 +54,12 @@
   </div>
   <script src="./assets/js/validator.js"></script>
   <script>
-    Validator('#formRegister');
+    const formRegister = Validator;
+    formRegister.init('#formRegister');
+    formRegister.eForm.onsubmit = (e) => {
+      e.preventDefault();
+      console.log(formRegister.getDataSubmit());
+    }
   </script>
 </body>
 
