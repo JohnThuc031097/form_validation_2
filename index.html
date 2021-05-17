@@ -109,9 +109,9 @@
   </div>
   <script src="./assets/js/validator.js"></script>
   <script>
-    const formRegister = Validator;
+    const formRegister = Validator();
     formRegister.init('#formRegister');
-    formRegister.eForm.onsubmit = (e) => {
+    formRegister.getFormElement().onsubmit = (e) => {
       e.preventDefault();
       formRegister.getDataSubmit(data => {
         console.log(data);
