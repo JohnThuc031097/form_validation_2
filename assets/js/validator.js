@@ -279,8 +279,6 @@ const Validator = {
     this.Events.onsubmit(this.eInputs, (name, msg) => {
       this.Funcs.setMessage(this.eBoxRules[name], this.eMessageRules[name], msg);
     }, results => {
-      // console.log('data:', results);
-      // this.dataSubmit = results;
       callback(results);
     });
   }
